@@ -8,6 +8,7 @@ import java.util.Collections;
 
 import android.app.AlertDialog;
 import android.app.ListActivity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -24,15 +25,16 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends ListActivity
 {
    // name of SharedPreferences XML file that stores the saved searches 
    private static final String SEARCHES = "searches";
    
-   private EditText queryEditText; // EditText where user enters a query
+   private EditText websiteEditText; // EditText where user enters a query
    private EditText tagEditText; // EditText where user tags a query
-   private SharedPreferences savedSearches; // user's favorite searches
+   private SharedPreferences savedWebsitess; // user's favorite searches
    private ArrayList<String> tags; // list of tags for saved searches
    private ArrayAdapter<String> adapter; // binds tags to ListView
    
@@ -44,14 +46,14 @@ public class MainActivity extends ListActivity
       setContentView(R.layout.activity_main);
 
       // get references to the EditTexts  
-      queryEditText = (EditText) findViewById(R.id.queryEditText);
+      websiteEditText = (EditText) findViewById(R.id.websiteEditText);
       tagEditText = (EditText) findViewById(R.id.tagEditText);
       
       // get the SharedPreferences containing the user's saved searches 
-      savedSearches = getSharedPreferences(SEARCHES, MODE_PRIVATE); 
+       savedWebsitess = getSharedPreferences(SEARCHES, MODE_PRIVATE);
 
       // store the saved tags in an ArrayList then sort them
-      tags = new ArrayList<String>(savedSearches.getAll().keySet());
+      tags = new ArrayList<String>(savedWebsitess.getAll().keySet());
       Collections.sort(tags, String.CASE_INSENSITIVE_ORDER); 
       
       // create ArrayAdapter and use it to bind tags to the ListView
@@ -77,42 +79,42 @@ public class MainActivity extends ListActivity
       public void onClick(View v) 
       {
          // create tag if neither queryEditText nor tagEditText is empty
-         if (queryEditText.getText().length() > 0 &&
+         if (websiteEditText.getText().length() > 0 &&
             tagEditText.getText().length() > 0)
          {
-            addTaggedSearch(queryEditText.getText().toString(), 
-               tagEditText.getText().toString());
-            queryEditText.setText(""); // clear queryEditText
+             addTaggedWebsite(websiteEditText.getText().toString(),
+                     tagEditText.getText().toString());
+             websiteEditText.setText(""); // clear queryEditText
             tagEditText.setText(""); // clear tagEditText
-            
+
             ((InputMethodManager) getSystemService(
                Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(
-               tagEditText.getWindowToken(), 0);  
-         } 
+               tagEditText.getWindowToken(), 0);
+         }
          else // display message asking user to provide a query and a tag
          {
             // create a new AlertDialog Builder
-            AlertDialog.Builder builder = 
+            AlertDialog.Builder builder =
                new AlertDialog.Builder(MainActivity.this);
 
             // set dialog's message to display
             builder.setMessage(R.string.missingMessage);
-            
+
             // provide an OK button that simply dismisses the dialog
-            builder.setPositiveButton(R.string.OK, null); 
-            
+            builder.setPositiveButton(R.string.OK, null);
+
             // create AlertDialog from the AlertDialog.Builder
             AlertDialog errorDialog = builder.create();
             errorDialog.show(); // display the modal dialog
-         } 
+         }
       } // end method onClick
    }; // end OnClickListener anonymous inner class
 
    // add new search to the save file, then refresh all Buttons
-   private void addTaggedSearch(String query, String tag)
+   private void addTaggedWebsite(String query, String tag)
    {
       // get a SharedPreferences.Editor to store new tag/query pair
-      SharedPreferences.Editor preferencesEditor = savedSearches.edit();
+      SharedPreferences.Editor preferencesEditor = savedWebsitess.edit();
       preferencesEditor.putString(tag, query); // store current search
       preferencesEditor.apply(); // store the updated preferences
       
@@ -134,14 +136,17 @@ public class MainActivity extends ListActivity
       {
          // get query string and create a URL representing the search
          String tag = ((TextView) view).getText().toString();
-         String urlString = getString(R.string.searchURL) +
-            Uri.encode(savedSearches.getString(tag, ""), "UTF-8");
+         String urlString = "http://" + Uri.encode(savedWebsitess.getString(tag, ""), "UTF-8");
          
          // create an Intent to launch a web browser    
          Intent webIntent = new Intent(Intent.ACTION_VIEW, 
             Uri.parse(urlString));                      
 
-         startActivity(webIntent); // launches web browser to view results
+         try {
+             startActivity(webIntent); // launches web browser to view results
+         }catch(ActivityNotFoundException ex){
+             Toast.makeText(MainActivity.this,"Wrong website link!",Toast.LENGTH_LONG).show();
+         }
       } 
    }; // end itemClickListener declaration
    
@@ -182,8 +187,8 @@ public class MainActivity extends ListActivity
                         case 1: // edit
                            // set EditTexts to match chosen tag and query
                            tagEditText.setText(tag);
-                           queryEditText.setText(
-                              savedSearches.getString(tag, ""));
+                            websiteEditText.setText(
+                                    savedWebsitess.getString(tag, ""));
                            break;
                         case 2: // delete
                            deleteSearch(tag);
@@ -214,8 +219,7 @@ public class MainActivity extends ListActivity
    private void shareSearch(String tag)
    {
       // create the URL representing the search
-      String urlString = getString(R.string.searchURL) +
-         Uri.encode(savedSearches.getString(tag, ""), "UTF-8");
+      String urlString = "http://" + Uri.encode(savedWebsitess.getString(tag, ""), "UTF-8");
 
       // create Intent to share urlString
       Intent shareIntent = new Intent();
@@ -263,8 +267,8 @@ public class MainActivity extends ListActivity
                tags.remove(tag); // remove tag from tags
                
                // get SharedPreferences.Editor to remove saved search
-               SharedPreferences.Editor preferencesEditor = 
-                  savedSearches.edit();                   
+               SharedPreferences.Editor preferencesEditor =
+                       savedWebsitess.edit();
                preferencesEditor.remove(tag); // remove search
                preferencesEditor.apply(); // saves the changes
 
